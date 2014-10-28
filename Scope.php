@@ -72,7 +72,7 @@ class Scope
         }
     }
 
-    public static function register($name, Callable $function, $singleton = true)
+    public static function register($name, $function, $singleton = true)
     {
         if (is_null(self::$container)) {
             throw new \Exception('Scope is missing Container');
