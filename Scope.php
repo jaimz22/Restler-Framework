@@ -64,7 +64,7 @@ class Scope
 
     private static $container;
 
-    public static function init(Illuminate\Container\Container $container)
+    public static function init(\Illuminate\Container\Container $container)
     {
         self::$container = $container;
     }
