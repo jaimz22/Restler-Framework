@@ -62,100 +62,119 @@ class Scope
     protected static $instances = array();
     protected static $registry = array();
 
+    private static $container;
+
+    public static function init(Illuminate\Container\Container $container)
+    {
+        self::$container = $container;
+    }
+
     public static function register($name, Callable $function, $singleton = true)
     {
-        static::$registry[$name] = (object)compact('function', 'singleton');
+        if (is_null(self::$container)) {
+            throw new \Exception('Scope is missing Container');
+        }
+
+        if (true == $singleton) {
+            self::$container->singleton($name,$function);
+        }else{
+            self::$container->bind($name,$function);
+        }
+
+//        static::$registry[$name] = (object)compact('function', 'singleton');
     }
 
     public static function set($name, $instance)
     {
-        static::$instances[$name] = (object)array('instance' => $instance);
+        self::$container->instance($name,$instance);
+//        static::$instances[$name] = (object)array('instance' => $instance);
     }
 
-    public static function get($name)
+    public static function get($name,$parameters=[])
     {
-        $r = null;
-        $initialized = false;
-        $properties = array();
-        if (array_key_exists($name, static::$instances)) {
-            $initialized = true;
-            $r = static::$instances[$name]->instance;
-        } elseif (!empty(static::$registry[$name])) {
-            $function = static::$registry[$name]->function;
-            $r = $function();
-            if (static::$registry[$name]->singleton)
-                static::$instances[$name] = (object)array('instance' => $r);
-        } else {
-            $fullName = $name;
-            if (isset(static::$classAliases[$name])) {
-                $fullName = static::$classAliases[$name];
-            }
-            if (class_exists($fullName)) {
-                $shortName = Util::getShortName($name);
-                $r = new $fullName();
-                static::$instances[$name] = (object)array('instance' => $r);
-                if ($name != 'Restler') {
-                    $r->restler = static::get('Restler');
-                    $m = Util::nestedValue($r->restler, 'apiMethodInfo', 'metadata');
-                    if ($m) {
-                        $properties = Util::nestedValue(
-                            $m, 'class', $fullName,
-                            CommentParser::$embeddedDataName
-                        ) ? : (Util::nestedValue(
-                            $m, 'class', $shortName,
-                            CommentParser::$embeddedDataName
-                        ) ? : array());
-                    } else {
-                        static::$instances[$name]->initPending = true;
-                    }
-                }
-            }
-        }
-        if (
-            $r instanceof iUseAuthentication &&
-            static::get('Restler')->_authVerified &&
-            !isset(static::$instances[$name]->authVerified)
-        ) {
-            static::$instances[$name]->authVerified = true;
-            $r->__setAuthenticationStatus
-                (static::get('Restler')->_authenticated);
-        }
-        if (isset(static::$instances[$name]->initPending)) {
-            $m = Util::nestedValue(static::get('Restler'), 'apiMethodInfo', 'metadata');
-            $fullName = $name;
-            if (class_exists($name)) {
-                $shortName = Util::getShortName($name);
-            } else {
-                $shortName = $name;
-                if (isset(static::$classAliases[$name]))
-                    $fullName = static::$classAliases[$name];
-            }
-            if ($m) {
-                $properties = Util::nestedValue(
-                    $m, 'class', $fullName,
-                    CommentParser::$embeddedDataName
-                ) ? : (Util::nestedValue(
-                    $m, 'class', $shortName,
-                    CommentParser::$embeddedDataName
-                ) ? : array());
-                unset(static::$instances[$name]->initPending);
-                $initialized = false;
-            }
-        }
-        if (!$initialized && is_object($r)) {
-            $properties += static::$properties;
-            $objectVars = get_object_vars($r);
-            $className = get_class($r);
-            foreach ($properties as $property => $value) {
-                if (property_exists($className, $property)) {
-                    //if not a static property
-                    array_key_exists($property, $objectVars)
-                        ? $r->{$property} = $value
-                        : $r::$$property = $value;
-                }
-            }
-        }
-        return $r;
+        return self::$container->make($name,$parameters);
+//        $r = null;
+//        $initialized = false;
+//        $properties = array();
+//        if (array_key_exists($name, static::$instances)) {
+//            $initialized = true;
+//            $r = static::$instances[$name]->instance;
+//        } elseif (!empty(static::$registry[$name])) {
+//            $function = static::$registry[$name]->function;
+//            $r = $function();
+//            if (static::$registry[$name]->singleton)
+//                static::$instances[$name] = (object)array('instance' => $r);
+//        } else {
+//            $fullName = $name;
+//            if (isset(static::$classAliases[$name])) {
+//                $fullName = static::$classAliases[$name];
+//            }
+//            if (class_exists($fullName)) {
+//                $shortName = Util::getShortName($name);
+//                $r = new $fullName();
+//                static::$instances[$name] = (object)array('instance' => $r);
+//                if ($name != 'Restler') {
+//                    $r->restler = static::get('Restler');
+//                    $m = Util::nestedValue($r->restler, 'apiMethodInfo', 'metadata');
+//                    if ($m) {
+//                        $properties = Util::nestedValue(
+//                            $m, 'class', $fullName,
+//                            CommentParser::$embeddedDataName
+//                        ) ? : (Util::nestedValue(
+//                            $m, 'class', $shortName,
+//                            CommentParser::$embeddedDataName
+//                        ) ? : array());
+//                    } else {
+//                        static::$instances[$name]->initPending = true;
+//                    }
+//                }
+//            }
+//        }
+//        if (
+//            $r instanceof iUseAuthentication &&
+//            static::get('Restler')->_authVerified &&
+//            !isset(static::$instances[$name]->authVerified)
+//        ) {
+//            static::$instances[$name]->authVerified = true;
+//            $r->__setAuthenticationStatus
+//                (static::get('Restler')->_authenticated);
+//        }
+//        if (isset(static::$instances[$name]->initPending)) {
+//            $m = Util::nestedValue(static::get('Restler'), 'apiMethodInfo', 'metadata');
+//            $fullName = $name;
+//            if (class_exists($name)) {
+//                $shortName = Util::getShortName($name);
+//            } else {
+//                $shortName = $name;
+//                if (isset(static::$classAliases[$name]))
+//                    $fullName = static::$classAliases[$name];
+//            }
+//            if ($m) {
+//                $properties = Util::nestedValue(
+//                    $m, 'class', $fullName,
+//                    CommentParser::$embeddedDataName
+//                ) ? : (Util::nestedValue(
+//                    $m, 'class', $shortName,
+//                    CommentParser::$embeddedDataName
+//                ) ? : array());
+//                unset(static::$instances[$name]->initPending);
+//                $initialized = false;
+//            }
+//        }
+//        if (!$initialized && is_object($r)) {
+//            $properties += static::$properties;
+//            $objectVars = get_object_vars($r);
+//            $className = get_class($r);
+//            foreach ($properties as $property => $value) {
+//                if (property_exists($className, $property)) {
+//                    //if not a static property
+//                    array_key_exists($property, $objectVars)
+//                        ? $r->{$property} = $value
+//                        : $r::$$property = $value;
+//                }
+//            }
+//        }
+//        return $r;
     }
 
     /**
@@ -181,8 +200,10 @@ class Scope
         }
         if (class_exists($qualified))
             return $qualified;
-        if (isset(static::$classAliases[$className])) {
-            $qualified = static::$classAliases[$className];
+//        if (isset(static::$classAliases[$className])) {
+//            $qualified = static::$classAliases[$className];
+        if (isset(static::$container[$className])) {
+            $qualified = get_class(static::$container[$className]);
             if (class_exists($qualified))
                 return $qualified;
         }
