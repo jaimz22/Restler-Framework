@@ -67,6 +67,9 @@ class Scope
     public static function init(\Illuminate\Container\Container $container)
     {
         self::$container = $container;
+        foreach(self::$classAliases as $name=>$class) {
+            self::register($name,$class,false);
+        }
     }
 
     public static function register($name, Callable $function, $singleton = true)
