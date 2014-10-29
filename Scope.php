@@ -181,7 +181,7 @@ class Scope
 //                }
 //            }
 //        }
-//        return $r;
+        return $r;
     }
 
     /**
