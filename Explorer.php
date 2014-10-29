@@ -273,10 +273,8 @@ class Explorer implements iProvideMultiVersionApi
             ? $m['longDescription']
             : '';
         $r->responseMessages = $this->responseMessages($route);
-        $this->setType(
-            $r,
-            new ValidationInfo(Util::nestedValue($m, 'return') ? : array())
-        );
+
+        $this->setType($r,new ValidationInfo(Util::nestedValue($m, 'return') ?: []));
         if (is_null($r->type) || 'mixed' == $r->type) {
             $r->type = 'array';
         } elseif ($r->type == 'null') {
@@ -435,11 +433,12 @@ class Explorer implements iProvideMultiVersionApi
     {
         //TODO: proper type management
         if ($info->type == 'array') {
-            if ($info->children) {
-                $this->model($info->contentType, $info->children);
-                $object->items = (object)array(
-                    '$ref' => $info->contentType
-                );
+            if ($info->contentType && class_exists($info->contentType)) {
+                list($type, $children) = Routes::getTypeAndModel(new \ReflectionClass($info->contentType), []);
+                $this->model($type, $children);
+                $object->items = (object)[
+                    '$ref' =>  Util::getShortName($info->contentType)
+                ];
             } elseif ($info->contentType && $info->contentType == 'associative') {
                 unset($info->contentType);
                 $this->model($info->type = 'Object', array(
@@ -462,6 +461,7 @@ class Explorer implements iProvideMultiVersionApi
             }
         } elseif ($info->children) {
             $this->model($info->type, $info->children);
+            $info->type = Util::getShortName($info->type);
         } elseif ($t = Util::nestedValue(static::$dataTypeAlias, strtolower($info->type))) {
             if (is_array($t)) {
                 $info->type = $t[0];

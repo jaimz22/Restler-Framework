@@ -15,10 +15,7 @@ namespace Luracast\Restler;
  */
 class Scope
 {
-    public static $classAliases = array(
-
-        //Core
-        'Restler' => 'Luracast\Restler\Restler',
+    public static $classAliases = [
 
         //Format classes
         'AmfFormat' => 'Luracast\Restler\Format\AmfFormat',
@@ -57,7 +54,7 @@ class Scope
 
         //Exception
         'RestException' => 'Luracast\Restler\RestException'
-    );
+    ];
     public static $properties = array();
     protected static $instances = array();
     protected static $registry = array();
@@ -67,8 +64,9 @@ class Scope
     public static function init(\Illuminate\Container\Container $container)
     {
         self::$container = $container;
-        foreach(self::$classAliases as $name=>$class) {
-            self::register($name,$class,false);
+        self::register('Restler','Luracast\Restler\Restler',true);
+        foreach(self::$classAliases as $name => $class){
+            self::register($name, $class, false);
         }
     }
 
@@ -95,10 +93,20 @@ class Scope
 
     public static function get($name,$parameters=[])
     {
-        return self::$container->make($name,$parameters);
-//        $r = null;
-//        $initialized = false;
-//        $properties = array();
+        $r = self::$container->make($name, $parameters);
+        $initialized = true;
+        $properties = [];
+
+        if($name != 'Restler'){
+            $r->restler = static::get('Restler');
+//            $m = Util::nestedValue($r->restler, 'apiMethodInfo', 'metadata');
+//            if($m){
+//                $properties = Util::nestedValue($m, 'class', $fullName, CommentParser::$embeddedDataName) ?: (Util::nestedValue($m, 'class', $shortName, CommentParser::$embeddedDataName) ?: []);
+//            }else{
+//                static::$instances[$name]->initPending = true;
+//            }
+        }
+
 //        if (array_key_exists($name, static::$instances)) {
 //            $initialized = true;
 //            $r = static::$instances[$name]->instance;
@@ -133,16 +141,12 @@ class Scope
 //                }
 //            }
 //        }
-//        if (
-//            $r instanceof iUseAuthentication &&
-//            static::get('Restler')->_authVerified &&
-//            !isset(static::$instances[$name]->authVerified)
-//        ) {
-//            static::$instances[$name]->authVerified = true;
-//            $r->__setAuthenticationStatus
-//                (static::get('Restler')->_authenticated);
-//        }
-//        if (isset(static::$instances[$name]->initPending)) {
+        if($r instanceof iUseAuthentication && static::get('Restler')->_authVerified && !isset(static::$instances[$name]->authVerified)){
+            static::$instances[$name]->authVerified = true;
+            $r->__setAuthenticationStatus(static::get('Restler')->_authenticated);
+        }
+
+//        if(isset(static::$instances[$name]->initPending)){
 //            $m = Util::nestedValue(static::get('Restler'), 'apiMethodInfo', 'metadata');
 //            $fullName = $name;
 //            if (class_exists($name)) {

@@ -104,10 +104,10 @@ class Routes
                 $metadata['param'] = array();
             }
             if (isset($metadata['return']['type'])) {
-                if ($qualified = Scope::resolve($metadata['return']['type'], $scope))
-                    list($metadata['return']['type'], $metadata['return']['children']) =
-                        static::getTypeAndModel(new ReflectionClass($qualified), $scope);
-            } else {
+                if ($qualified = Scope::resolve($metadata['return']['type'], $scope)) {
+                    list($metadata['return']['type'], $metadata['return']['children']) = static::getTypeAndModel(new ReflectionClass($qualified), $scope);
+                }
+            }else{
                 //assume return type is array
                 $metadata['return']['type'] = 'array';
             }
@@ -626,7 +626,7 @@ class Routes
      *
      * @access protected
      */
-    protected static function getTypeAndModel(ReflectionClass $class, array $scope, $prefix='', array $rules=array())
+    public static function getTypeAndModel(ReflectionClass $class, array $scope, $prefix='', array $rules=array())
     {
         $className = $class->getName();
         if (isset(static::$models[$prefix.$className])) {
